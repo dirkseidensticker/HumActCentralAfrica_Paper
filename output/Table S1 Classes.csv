@@ -1,0 +1,11 @@
+"Class","Archaeological_association","N_all_regions","N_regions_A-H","N_regions_I-K"
+"Ia","relevant dates, strong archaeological context",453,391,62
+"Ib","relevant dates, medium archaeological context",539,530,9
+"Ic","relevant dates, poor archaeological context",62,59,3
+"Id","relevant dates, strong proxy for human activity (charred fruit remains but no artefacts)",90,90,0
+"IIa","irrelevant dates, related to lithic artefacts only",18,17,1
+"IIb","irrelevant dates, doubtful archaeological context (post-depositional mixing)",55,54,1
+"IIc","irrelevant dates, lack of archaeological context",171,167,4
+"IIIa","unreliable dates due to presumed lab errors",26,26,0
+"IIIb","unreliable dates on shells (biased due to old-carbon age offsets)",18,18,0
+"IIIc","unreliable dates on bulk organic matter (from sediment cores)",12,12,0

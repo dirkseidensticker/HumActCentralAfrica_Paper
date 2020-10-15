@@ -1,0 +1,12 @@
+REGION,LABEL,Short,LONG,LAT,LON,col
+A,Southern Cameroon,S-CMR,Southern Cameroon & Malabo Island,6,13,#f8766d
+B,Gabon,GAB,Gabon & Mainland Equatorial Guinea,0,14,#619cff
+C,Lower Congo,LowC,Lower Congo,-3.2,13.3,#bf310a
+D,Northern Congo Basin,N-CB,Norther Congo Basin,3.8,20,#1F78B4
+E,Western Congo Basin,W-CB,Western Congo Basin,-0.5,16.2,#7cae00
+F,Inner Congo Basin,ICB,Inner Congo Basin,-2,22,#ff8400
+G,Eastern Congo Basin,E-CB,Eastern Congo Basin,1.5,25.2,#00ba38
+H,Southern Congo Basin,S-CB,Southern Congo/Old Bandundu,-6,18.7,#06bcc2
+I,Northern Angola,N-ANG,Northern Angola,-8,19,#c77cff
+J,Katanga,Katanga,Katanga,-8.2,25.5,#9590ff
+K,Bioko,Bioko,Biko Island,3.6,8,#cf9400

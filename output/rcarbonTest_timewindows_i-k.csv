@@ -1,0 +1,5 @@
+"FROM","TO","rcarbon","MODEL"
+243,615,"negative","uniform"
+319,571,"negative","exponential"
+341,565,"negative","linear"
+1013,1168,"positive","uniform"
