@@ -1,8 +1,8 @@
 "PHASE","FROM","TO"
-"low activity 1",-1800,-1000
-"expansion 1",-1000,0
+"low activity 1",-1800,-800
+"expansion 1",-800,0
 "high activity 1",0,400
 "collapse",400,600
 "low activity 2",600,1000
-"expansion 2",1000,1500
-"high activity 2",1500,1900
+"expansion 2",1000,1400
+"high activity 2",1400,1900

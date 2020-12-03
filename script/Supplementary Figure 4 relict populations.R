@@ -20,12 +20,6 @@ c14 <- sf::st_as_sf(c14,
 sites	<- data.table::fread("input/sites.csv",
                            encoding = "UTF-8")
 
-sites <- sf::st_as_sf(sites, 
-                      coords = c("LONG", "LAT"), 
-                      remove = F, 
-                      crs = 4326, 
-                      na.fail = F)
-
 rcarbon <- data.table::fread("input/rcarbonTest_timewindows_a-h.csv", 
                               encoding = "UTF-8")
 
@@ -67,23 +61,24 @@ c14.hiatus <- dplyr::filter(c14,
 # 4. SITES ----
 # ............................................................
 
-# TODO ----
-# - sites and c14-sites merge by unique name & lat & lon
-
-c14.sites <- sf::st_as_sf(unique(c14[,c("SITE","LAT","LONG")]), 
-#c14.sites <- sf::st_as_sf(unique(c14.orig[,c("SITE","LAT","LONG")]), 
+c14.sites <- sf::st_as_sf(unique(as.data.frame(c14[,c("SITE","LAT","LONG")])), 
                           coords = c("LONG", "LAT"), 
                           crs = 4326, 
                           remove = F)
 
-hiatus.sites <- sf::st_as_sf(unique(c14.hiatus[,c("SITE","LAT","LONG")]), 
+hiatus.sites <- sf::st_as_sf(unique(as.data.frame(c14.hiatus[,c("SITE","LAT","LONG")])), 
                              coords = c("LONG", "LAT"), 
                              crs = 4326, 
                              remove = F)
 
 # sites + c14.sites - hiatus.sites
+# --------------------------------
 
-sites <- sites[,c("SITE", "LAT", "LONG")]
+sites <- unique(sites[,c("SITE", "LAT", "LONG")]) %>%
+  sf::st_as_sf(coords = c("LONG", "LAT"), 
+               remove = F, 
+               crs = 4326, 
+               na.fail = F)
 
 sites.all <- rbind(sites, c14.sites)
 sf::st_geometry(sites.all) <- NULL
@@ -106,6 +101,18 @@ not.hiatus.sites <- sf::st_as_sf(unique(not.hiatus.sites[,c("SITE","LAT","LONG")
                                  crs = 4326, 
                                  remove = F)
 
+# how many sites?
+sf::st_geometry(sites) <- NULL
+sf::st_geometry(c14.sites) <- NULL
+
+sites.doubl <- merge(x = sites, y = c14.sites, 
+                     by = c("SITE","LAT","LONG"))
+
+cat("",nrow(sites), "sites with known pottery groups \n", 
+    nrow(c14.sites), "sites with 14C dates of class I \n",
+    nrow(sites.doubl), "are in both lists! \n", 
+    nrow(sites.all), "sites with described pottery or class I dates")
+
 # small check of numbers: should be TRUE ;)
 nrow(sites.all) - nrow(hiatus.sites) == nrow(not.hiatus.sites)
 sites.all <- sf::st_as_sf(unique(sites.all[,c("SITE","LAT","LONG")]), 
@@ -117,11 +124,29 @@ sites.all <- sf::st_as_sf(unique(sites.all[,c("SITE","LAT","LONG")]),
 # 5. SUPPLEMENTARY FIGURE 4 ----
 # ............................................................
 
+# ............................................................
+# 3.1. Minimap (insert) ----
+# ............................................................
+
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+minimap <- ggplot(data = world) +
+  geom_sf(color = NA, fill = "grey") + 
+  geom_rect(xmin = 7, xmax = 30, 
+            ymin = -10, ymax = 6.5, 
+            fill = NA, color = "black") + 
+  coord_sf(xlim = c(-15, 50), 
+           ylim = c(-35, 35)) + 
+  theme_void() + 
+  theme(panel.border = element_rect(colour = "darkgrey", 
+                                    fill = NA, size = .5))
+
   # ............................................................
   # 5.1. Map ----
   # ............................................................
 
-plt <- basemap() +
+plt.main <- basemap() +
   geom_sf(data = sites.all, 
           fill = "#8a8a8a",
           color = "black",
@@ -135,9 +160,15 @@ plt <- basemap() +
   geom_sf(data = hiatus.sites, 
           color = "red", 
           size = 1) + 
-  #scale_colour_gradient2(low = "green", mid = "red", high = "blue",
-  #                       midpoint = spd.hiatus.min, na.value = NA) + 
-  # annotation
+  ggsn::north(sites.all, 
+              anchor = c(x = 29.5, y = 6.5)) + 
+  ggsn::scalebar(sites.all,
+                 location  = "topright",
+                 anchor = c(x = 27, y = 6),
+                 dist = 250, dist_unit = "km",
+                 transform = TRUE, model = "WGS84", 
+                 height = .01, st.dist = .025, 
+                 border.size = .1, st.size = 3) + 
   geom_point(aes(x = 7, y = -7), shape = 21, size = 2, color = "black", fill = "#8a8a8a") + 
   annotate("text", x = 7.3, y = -7, label = paste0("all sites (Class I)"),hjust=0,cex=2.5) +
   annotate("text", x = 7.3, y = -7.5, label = paste0("2000 BC to AD 1900 (n = ",nrow(sites.all),")"), hjust = 0, cex = 2.5) +
@@ -151,6 +182,15 @@ plt <- basemap() +
   theme_few() + 
   theme(legend.position = "none", 
         axis.title = element_blank())
+
+# ............................................................
+# 3.3. Combine Map & Insert ----
+# ............................................................
+
+plt <- ggdraw() +
+  draw_plot(plt.main) +
+  draw_plot(minimap, 
+            x = .05, y = .275, width = .15, height = .15)
 
 windows() ; plt
 

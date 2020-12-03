@@ -148,8 +148,6 @@ table_dates <- table_dates %>%
 # 5. OVERVIEW OF POTTERY STYLES ----
 # ............................................................
 
-#c14$CLASS <- gsub("[^::A-Z::]","", c14$CLASS) # reduce to main classes
-
 c14$CLASS <- sub("IIa", "II", c14$CLASS )	
 c14$CLASS <- sub("IIb", "II", c14$CLASS )
 c14$CLASS <- sub("IIc", "II", c14$CLASS )
@@ -257,13 +255,13 @@ table_pottery <- rbind(table_pottery,add)
   # 6.1. DATES PER CLASS PER SITE ----
   # ............................................................
 
-table_sites <- reshape2::dcast(c14, SITE  ~ CLASS, 			# changed by WH: deleted "+ REGION + LAT + LONG"
+table_sites <- reshape2::dcast(c14, SITE  ~ CLASS, 
                              value.var = "LABNR",
                              fun.aggregate = length)
 colnames(table_sites)[2:7] <- paste("N_DATES_CLASS_", colnames(table_sites)[2:7], sep = "")		
 
 tmp4.n_dates <- c14 %>% 
-  dplyr::group_by(SITE) %>% 						# changed by WH: deleted ", LAT, LONG"
+  dplyr::group_by(SITE) %>% 
   dplyr::summarise(N_DATES = length(SITE))
 
   # ............................................................
@@ -299,9 +297,9 @@ meta <- unique(rbind(meta1,meta2)) #; nrow(meta)
   # ............................................................
 
 table_sites <- table_sites %>% 
-  dplyr::full_join(tmp4.n_dates, by = "SITE") %>%		# corrected WH: full_join instead of left_join; deleted , "LAT", "LONG"
-  dplyr::full_join(tmp4.n_pottery, by = "SITE") %>%		# corrected WH: full_join 
-  dplyr::full_join(meta, by = "SITE") %>%			# added WH
+  dplyr::full_join(tmp4.n_dates, by = "SITE") %>%	
+  dplyr::full_join(tmp4.n_pottery, by = "SITE") %>%	
+  dplyr::full_join(meta, by = "SITE") %>%	
   replace(is.na(.), 0) %>% 
   dplyr::select("SITE",
                 "REGION",
@@ -450,7 +448,7 @@ table_regions <- table_regions %>%
 names(table_regions)[which(names(table_regions)=="N_POTTERYSTYLES_TOTAL")] <- "N_POTTERYSTYLES_TOTAL *"
 names(table_regions)[which(names(table_regions)=="N_SITES_TOTAL")] <- "N_SITES_TOTAL **"
 
-double_styles <- nrow(table_pottery[table_pottery[,c("N_REGIONS")] > 1,])
+double_styles <- sum(table_pottery[1:(nrow(table_pottery)-2),"N_REGIONS"] > 1)
 add <- table_regions[1:2,] ; add[,1] <- as.character(add[,1]) ; for(j in 1:ncol(add)){ add[1,j] <- "" ; add[2,j] <- ""}
 add[1,1] <- paste("*",double_styles," Pottery styles occur in two regions. Therefore, the sum of pottery styles of all regions exceeds the number of pottery styles in Supplementary Table 1.")
 add[2,1] <- paste("**",			" Sites with both pottery groups as well as unclassified pottery assemblages are counted only as sites with pottery groups.")
@@ -490,12 +488,6 @@ write.csv(table_sites,
           fileEncoding = "UTF-8", 
           row.names = F)
 
-#tab.lst <- list("Data S1 Radiocarbon dates" = table_dates,
-#                "Data S2 Pottery styles" = table_pottery,
-#                #"Data S3 References" = references,
-#               "Data S4 Sites" = table_sites)
-#write.xlsx(tab.lst, file = "output/Data S1-S4.xlsx")
-
 # ............................................................
 # 9. INTEGRITY CHECKS ----
 # ............................................................
@@ -507,10 +499,10 @@ sum(table_sites$N_DATES)
 sum(as.numeric(table_regions$N_DATES_TOTAL),na.rm=T)
 
 # CHECK NR OF REGIONS ASSOCIATED WITH STYLES
-sum(as.numeric(table_pottery[,c("N_REGIONS")]),na.rm=T)
+sum(table_pottery[,c("N_REGIONS")],na.rm=T)
 sum(as.numeric(table_regions[,c("N_POTTERYSTYLES_TOTAL *")]),na.rm=T)
 
-sum(as.numeric(table_pottery[,c("N_SITES")]),na.rm=T)
+sum(table_pottery[,c("N_SITES")],na.rm=T)
 sum(as.numeric(table_sites[,c("N_POTTERYSTYLES")]),na.rm=T)
 
 sum(as.numeric(table_regions[,c("N_SITES_TOTAL **")]),na.rm=T)
@@ -518,5 +510,3 @@ nrow(table_sites)
 
 sum(as.numeric(table_regions[,c("N_SITES_potterygroups")]),na.rm=T)
 nrow(table_sites[ table_sites[,c("N_POTTERYSTYLES")] >0,])
-
-# ad number for indet sites == 223

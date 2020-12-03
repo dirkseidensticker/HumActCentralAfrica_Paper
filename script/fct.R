@@ -12,9 +12,9 @@ rcarbon.spd <- function(c14.data,
   
   cal = rcarbon::calibrate(x = c14.data$C14AGE,
                            errors = c14.data$C14STD,
-                           calCurves = 'intcal13', 
+                           calCurves = 'intcal20', 
                            ncores = ncores, 
-                           normalised = TRUE) #running calibration over 3 cores
+                           normalised = FALSE)
   
   spd <- rcarbon::spd(cal,
                       timeRange = timeRange, 
@@ -69,15 +69,11 @@ basemap <- function(){
   
   plt <- ggplot() + 
     # base map ----
-    #geom_raster(data = rfs.rainforst, aes(y = y, x = x), fill = '#c8c8c8') + 
-    #geom_raster(data = rfs.water, aes(y = y, x = x), fill = '#808080') + 
     geom_sf(data = white, fill = "grey", color = NA) + 
     geom_sf(data = coast10, size = .5, color = '#808080') + 
     geom_sf(data = rivers10, size = .5, color = '#808080') + 
     geom_sf(data = lakes10, fill = '#808080', color = NA) + 
-    geom_sf(data = boundary_lines_land10, size = .1, color = 'black')# + 
-    #coord_sf(xlim = c(7.5, 29), 
-    #         ylim = c(-9.2, 6))
+    geom_sf(data = boundary_lines_land10, size = .1, color = 'black') 
 
   return(plt)
 }

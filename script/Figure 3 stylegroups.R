@@ -76,8 +76,7 @@ sites <- st_as_sf(sites,
 
 add <- pottery ; add $DESCRIPTION<-NULL ; add $REGION<-NULL
 sites <- merge(x = sites, 
-               #y = pottery[,-c("DESCRIPTION", "REGION")],  
-		  y=add,
+		           y = add,
                by = "STYLE", 
                all.x = T)
 
@@ -174,7 +173,8 @@ pottery.cent.meta <- pottery.cent %>%
 
 sites.cent <- merge(x = sites, 							# merge sites per style with class (200-year century list)
                     y = dplyr::select(pottery.cent, -DESCRIPTION), 
-                    by = "STYLE")
+                    by = "STYLE", 
+                    allow.cartesian = TRUE)
 
   # ............................................................
   # 4.5. extremes  ----
@@ -188,11 +188,6 @@ sites.cent <- merge(x = sites, 							# merge sites per style with class (200-ye
 pottery.cent.freq		<- pottery.cent.freq[pottery.cent.freq[,c("Var1")] < 1800  ,] 	# filter out last class (historical time)
 nrow(pottery.cent.meta)
 pottery.cent.meta		<- pottery.cent.meta[pottery.cent.meta[,c("AGE")] < 1800  ,] 	# filter out last class (historical time)
-nrow(pottery.cent.meta)
-
-#pottery.cent.meta		<- pottery.cent.meta[pottery.cent.meta[,c("FROM")] < 1700  ,] 	# filter out recent expansion phase	
-nrow(pottery.cent.meta)
-#pottery.cent.meta		<- pottery.cent.meta[pottery.cent.meta[,c("FROM")] > (-700)  ,] 	
 nrow(pottery.cent.meta)
 
   # ............................................................
@@ -278,8 +273,6 @@ if(ttest_on_bins == "FALSE"){
 # 5. Figure 4 ----
 # ............................................................
 
-#col_expansion 	<- "bisque3"
-#col_regionalization <- "bisque4"
 col_expansion 	<- "gray50"
 col_regionalization <- "gray30"
 col_collapse 		<- "black"
@@ -310,17 +303,9 @@ pottery.cent.freq$Var1 <- as.numeric(as.character(pottery.cent.freq$Var1))
 ymax1 <- max(pottery.cent.freq$Freq)
 
 plt.freq <- ggplot() +
-
-  #geom_rect(data = phases, 
-  #          aes(xmin = FROM, xmax = TO, ymin = 0, ymax = Inf, fill = col), alpha = .3) + 
-  #scale_fill_manual(values = as.character(phases$col), 
-  #                  labels = c("expansion period", 
-  #                             "regionalization period")) +
-
   geom_rect(data = filter(rcarbon, FROM > -2000 & TO < 1900), 										 # added by WH
 		aes(xmin = FROM, xmax = TO, ymin = 0, ymax = ymax1*1.40, fill = rcarbon), alpha = .1) + 				 # added by WH
-  scale_fill_discrete("",labels = c("period of less intense human activity   ", "period of more intense human activity      ")) +  # added by WH
-
+  scale_fill_discrete("",labels = c("period of less intense human activity   ", "period of more intense human activity      ")) +
   geom_bar(data = filter(pottery.cent.freq, Var1 < 1800), 
            aes(x = Var1, weight = Freq), 
            fill = "white", color = "#333333", width = binyears*3/4) + 
@@ -331,7 +316,7 @@ plt.freq <- ggplot() +
 			fill = col_regionalization, color = "#333333", width = binyears*3/4) + 
   geom_bar(data = filter(pottery.cent.freq, Var1 > phases[6,c("FROM")], Var1 < phases[6,c("TO")]), aes(x = Var1 , weight = Freq),  # added by WH
 			fill = col_expansion, color = "#333333", width = binyears*3/4) + 
-  geom_bar(data = filter(pottery.cent.freq, Var1 > phases[7,c("FROM")], Var1 < 1800), aes(x = Var1 , weight = Freq),  # added by WH
+  geom_bar(data = filter(pottery.cent.freq, Var1 > phases[7,c("FROM")], Var1 < 1800), aes(x = Var1 , weight = Freq),
 			fill = col_regionalization, color = "#333333", width = binyears*3/4) + 
 
   coord_cartesian(xlim = c(x_limits[1], 1850), 
@@ -365,24 +350,15 @@ plt.freq <- ggplot() +
   scale_x_continuous(breaks = c(seq(-2000, 1800, 200)), 
                      expand = c(0,0)) + 
   scale_y_continuous("Number of  \n pottery groups", 
-                     #limits = c(0, ymax1*1.3), 		
                      expand = c(0, 0)) + #, 
   theme_classic() + 
-  theme(	text = element_text(size=12),			# added by WH
-		axis.title.x = element_blank(),
-        #axis.text.x = element_blank(),
-        #axis.ticks.x = element_blank(),
-        #axis.line.x = element_blank(),
-	#legend.margin = unit(c(0, 0, 0, 0), "cm"),			# added by WH
-	legend.margin = margin(t = 0, r = 0, b = 0, l = 2, unit = "cm"),
-	#plot.margin = margin(t = 0, unit = "cm"),# added by WH
-	#legend.box.margin= margin(t = 0, r = 0, b = 0, l = 2, unit = "cm"),
-	legend.box.spacing = unit(c(0, 0, 0.1, 0), "cm"),
+  theme(text = element_text(size=12),			# added by WH
+	    	axis.title.x = element_blank(),
+      	legend.margin = margin(t = 0, r = 0, b = 0, l = 2, unit = "cm"),
+      	legend.box.spacing = unit(c(0, 0, 0.1, 0), "cm"),
         legend.position = "none", 
         legend.title = element_blank())+
   guides(fill = guide_legend(reverse = TRUE))		# added by WH
-
-#windows() ; plt.freq
 
   # ............................................................
   # 5.2. Subfigure B: Frequency of sites per pottery group ----
@@ -391,11 +367,6 @@ plt.freq <- ggplot() +
 ymax2 <- max(pottery.cent.meta$SITE,na.rm=T)										# added by WH
 
 plt.sites <- ggplot() + 
-
-  #geom_rect(data = phases, 
-  #          aes(xmin = FROM, xmax = TO, ymin = 0, ymax = Inf, fill = col), alpha = .3) + 
-  #scale_fill_manual(values = as.character(phases$col)) +
-
   geom_rect(data = filter(rcarbon, FROM > -2000 & TO < 1900), 										 # added by WH
 		aes(xmin = FROM, xmax = TO, ymin = 0, ymax = ymax2*1.6, fill = rcarbon), alpha = .1) + 				 # added by WH
   scale_fill_discrete("",labels = c("period of less intense human activity   ", "period of more intense human activity   ")) +  # added by WH
@@ -404,7 +375,7 @@ plt.sites <- ggplot() +
                aes(x = AGE, y = SITE, group = AGE), 
                width = binyears*3/4, outlier.shape = 19) + 
 
-  geom_boxplot(data = filter(pottery.cent.meta, SITE> 0, AGE > -500, AGE < phases[2,c("TO")]), aes(x = AGE, y = SITE, group = AGE),   # added by WH
+  geom_boxplot(data = filter(pottery.cent.meta, SITE> 0, AGE > -500, AGE < phases[2,c("TO")]), aes(x = AGE, y = SITE, group = AGE),
                width = binyears*3/4, fill=col_expansion,
                outlier.shape = NA) +
   geom_boxplot(data = filter(pottery.cent.meta, SITE> 0, AGE > phases[3,c("FROM")], AGE < phases[3,c("TO")]), aes(x = AGE, y = SITE, group = AGE), 
@@ -417,49 +388,27 @@ plt.sites <- ggplot() +
                width = binyears*3/4, fill=col_regionalization,
                outlier.shape = NA) +
 
-  #annotate("text", x = -100, y = ymax2*1.5, label = paste("P =",round(pvalue1,3)),hjust=0,cex=3) +		# added by WH
-  #geom_line(aes(x=c(-200,200),y=c(ymax2*1.3,ymax2*1.3)))+
-  #geom_line(aes(x=c(-200,-200),y=c(ymax2*1.2,ymax2*1.3)))+
-  #geom_line(aes(x=c(200,200),y=c(ymax2*1.2,ymax2*1.3)))+
   annotate("text", x = (-500/2+phases[2,c("TO")]/2), y = ymax2*1.25, label = paste("HOMOGENEITY"),hjust=0.5,vjust=1,cex=3,col=col_expansion) +	
   annotate("text", x = (phases[3,c("FROM")]/2+phases[3,c("TO")]/2), y = ymax2*1.25, label = paste("REGIONALIZATION"),hjust=0.5,vjust=1,cex=3,col=col_regionalization) +	
   geom_line(aes(x=c(-500,phases[2,c("TO")]-20),y=c(ymax2*1.1,ymax2*1.1)),col=col_expansion,lwd=1)+
   geom_line(aes(x=c(phases[3,c("FROM")]+20,phases[3,c("TO")]-20),y=c(ymax2*1.1,ymax2*1.1)),col=col_regionalization,lwd=1)+
-
-  #annotate("text", x = 1300, y = ymax2*1.5, label = paste("P =",round(pvalue2,3)),hjust=0,cex=3) +
-  #geom_line(aes(x=c(1200,1600),y=c(ymax2*1.3,ymax2*1.3)))+
-  #geom_line(aes(x=c(1200,1200),y=c(ymax2*1.2,ymax2*1.3)))+
-  #geom_line(aes(x=c(1600,1600),y=c(ymax2*1.2,ymax2*1.3)))+
   annotate("text", x = (phases[6,c("FROM")]/2+phases[6,c("TO")]/2)-25, y = ymax2*1.25, label = paste("HOMOGENEITY"),hjust=0.5,vjust=1,cex=3,col=col_expansion) +	
-  annotate("text", x = (phases[7,c("FROM")]/2+phases[7,c("TO")]/2)-75, y = ymax2*1.25, label = paste("REGIONALIZATION"),hjust=0.5,vjust=1,cex=3,col=col_regionalization) +
+  annotate("text", x = (phases[7,c("FROM")]/2+phases[7,c("TO")]/2)-30, y = ymax2*1.25, label = paste("REGIONALIZATION"),hjust=0.5,vjust=1,cex=3,col=col_regionalization) +
   geom_line(aes(x=c(phases[6,c("FROM")]+20,phases[6,c("TO")]-20),y=c(ymax2*1.1,ymax2*1.1)),col=col_expansion,lwd=1)+
   geom_line(aes(x=c(phases[7,c("FROM")]+20,phases[7,c("TO")]-20),y=c(ymax2*1.1,ymax2*1.1)),col=col_regionalization,lwd=1)+
 
-  #geom_point(data = pottery.cent.meta, 
-  #           aes(x = AGE.jitter, y = SITE),
-  #           shape = 21, fill = "black", alpha = .25) + 
-  #geom_point(data = dplyr::filter(pottery.cent.meta, 
-  #                                STYLE %in% filt$STYLE), 
-  #           aes(x = AGE.jitter, y = SITE, color = STYLE),
-  #           size = 2) + 
   coord_cartesian(xlim = c(x_limits[1], 1850), 
-  #                ylim = c(0, ymax2*1.6)) + 
                   ylim = c(0, ymax2*1.3)) + 			
   scale_color_manual(values = as.character(filt$col)) + 
   scale_x_continuous(breaks = c(seq(-2000, 1800, 200)), 
                      expand = c(0,0)) + 
   scale_y_sqrt("Number of sites\n per pottery group", 
-               #breaks = c(0, (1 * 2^(1:7))), 
                breaks = c(0,5,10,25,50,75,100),
                expand = c(0, 0)) + 
   theme_classic() + 
   theme(legend.position = "none",
 	text = element_text(size=12),				
-       #axis.text.x = element_blank(),
-       #axis.ticks.x = element_blank(),
-       #axis.line.x = element_blank(),
         axis.title.x = element_blank())
-#windows() ; plt.sites
 
   # ............................................................
   # 5.3. Subfigure C: Mean Distribution Area ----
@@ -468,10 +417,6 @@ plt.sites <- ggplot() +
 ymax3 <- max(area_per_stylegroup$AREA,na.rm=T)
 
 plt.area <- ggplot() + 
-  #geom_rect(data = phases, 
-  #         aes(xmin = FROM, xmax = TO, ymin = 0, ymax = Inf, fill = col), alpha = .3) + 
-  #scale_fill_manual(values = as.character(phases$col)) +
-
   geom_rect(data = filter(rcarbon, FROM > -2000 & TO < 1900), 										 # added by WH
 		aes(xmin = FROM, xmax = TO, ymin = 0, ymax = ymax3*1.6, fill = rcarbon), alpha = .1) + 				 # added by WH
   scale_fill_discrete("",labels = c("period of less intense human activity   ", "period of more intense human activity   ")) +  # added by WH
@@ -493,33 +438,16 @@ plt.area <- ggplot() +
                width = binyears*3/4, fill=col_regionalization,
                outlier.shape = NA) +
 
-  #annotate("text", x = -100, y = ymax3*1.5, label = paste("P =",round(pvalue3,3)),hjust=0,cex=3) +
-  #geom_line(aes(x=c(-200,200),y=c(ymax3*1.3,ymax3*1.3)))+
-  #geom_line(aes(x=c(-200,-200),y=c(ymax3*1.2,ymax3*1.3)))+
-  #geom_line(aes(x=c(200,200),y=c(ymax3*1.2,ymax3*1.3)))+
   annotate("text", x = (-500/2+phases[2,c("TO")]/2), y = ymax3*1.25, label = paste("HOMOGENEITY"),hjust=0.5,vjust=1,cex=3,col=col_expansion) +	
   annotate("text", x = (phases[3,c("FROM")]/2+phases[3,c("TO")]/2), y = ymax3*1.25, label = paste("REGIONALIZATION"),hjust=0.5,vjust=1,cex=3,col=col_regionalization) +
   geom_line(aes(x=c(-500,phases[2,c("TO")]-20),y=c(ymax3*1.1,ymax3*1.1)),col=col_expansion,lwd=1)+
   geom_line(aes(x=c(phases[3,c("FROM")]+20,phases[3,c("TO")]-20),y=c(ymax3*1.1,ymax3*1.1)),col=col_regionalization,lwd=1)+
-
-  #annotate("text", x = 1300, y = ymax3*1.5, label = paste("P =",round(pvalue4,3)),hjust=0,cex=3) +
-  #geom_line(aes(x=c(1200,1600),y=c(ymax3*1.3,ymax3*1.3)))+
-  #geom_line(aes(x=c(1200,1200),y=c(ymax3*1.2,ymax3*1.3)))+
-  #geom_line(aes(x=c(1600,1600),y=c(ymax3*1.2,ymax3*1.3)))+
   annotate("text", x = (phases[6,c("FROM")]/2+phases[6,c("TO")]/2)-25, y = ymax3*1.25, label = paste("HOMOGENEITY"),hjust=0.5,vjust=1,cex=3,col=col_expansion) +	
-  annotate("text", x = (phases[7,c("FROM")]/2+phases[7,c("TO")]/2)-75, y = ymax3*1.25, label = paste("REGIONALIZATION"),hjust=0.5,vjust=1,cex=3,col=col_regionalization) +
+  annotate("text", x = (phases[7,c("FROM")]/2+phases[7,c("TO")]/2)-30, y = ymax3*1.25, label = paste("REGIONALIZATION"),hjust=0.5,vjust=1,cex=3,col=col_regionalization) +
   geom_line(aes(x=c(phases[6,c("FROM")]+20,phases[6,c("TO")]-20),y=c(ymax3*1.1,ymax3*1.1)),col=col_expansion,lwd=1)+
   geom_line(aes(x=c(phases[7,c("FROM")]+20,phases[7,c("TO")]-20),y=c(ymax3*1.1,ymax3*1.1)),col=col_regionalization,lwd=1)+
 
-  #geom_point(data = pottery.cent.meta, 
-  #           aes(x = AGE.jitter, y = AREA), 
-  #           shape = 21, fill = "black", alpha = .25) + 
-  #geom_point(data = dplyr::filter(pottery.cent.meta, 
-  #                                STYLE %in% filt$STYLE), 
-  #           aes(x = AGE.jitter, y = AREA, color = STYLE), 
-  #           size = 2) + 
   coord_cartesian(xlim = c(x_limits[1], 1850), 
-  #                ylim = c(0, ymax3*1.6)) + 			
                   ylim = c(0, ymax3*1.3)) + 
   scale_color_manual(values = as.character(filt$col)) + 
   scale_x_continuous("cal BC/AD", 
@@ -531,12 +459,7 @@ plt.area <- ggplot() +
                expand = c(0,0)) + 
   theme_classic() + 
   theme(legend.position = "none",
-	 text = element_text(size=12))				# added by WH
-
-#windows() ; plt.area
-
-#  filter(pottery.cent.meta, AREA > 0, FROM < (-600))
-#  filter(pottery.cent.meta, AREA > 0, AREA<0.001)
+	 text = element_text(size=12))
 
   # ............................................................
   # 5.4. Subfigure D: Maps ----

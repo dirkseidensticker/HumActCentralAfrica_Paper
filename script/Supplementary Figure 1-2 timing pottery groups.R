@@ -16,6 +16,7 @@ region.labels <- data.table::fread("input/region labels.csv",
                                    encoding = "UTF-8")
 rcarbonA <- data.table::fread("output/rcarbonTest_timewindows_a-h.csv", 
                               encoding = "UTF-8")
+
 rcarbonB <- data.table::fread("output/rcarbonTest_timewindows_i-k.csv", 
                               encoding = "UTF-8")
 
@@ -28,9 +29,9 @@ timeRange <- c(4000, 0)
 
 c14.sel <- dplyr::filter(c14, 
                          C14AGE > min.14C.age & # age filtering
-                           C14STD > 0 & 
-                           CLASS %in% c("Ia","Ib","Ic", "Id") & # class filtering
-                           REGION %in% LETTERS[seq(from = 1, to = 11)] # regional filtering
+                         C14STD > 0 & 
+                         CLASS %in% c("Ia","Ib","Ic", "Id") & # class filtering
+                         REGION %in% LETTERS[seq(from = 1, to = 11)] # regional filtering
 )
 
 # ............................................................
@@ -48,7 +49,11 @@ for(i in 1:length(id)){
                                   d$POTTERY)) # remove cases in parantheses
   
   if(nrow(d)!=0){ # only if 14C-dates exist
-    res <- rcarbon.spd(d, timeRange, oxcalnorm = T, median = T)
+    res <- rcarbon.spd(d, 
+                       timeRange, 
+                       kernel = ncores, 
+                       oxcalnorm = T,
+                       median = T)
     
     res[["dat"]]$median <- list(res[["median"]])
     res[["dat"]]$po.gr <- id[i]
@@ -136,7 +141,6 @@ plt.A <- ggplot() +
                            REGION %in% LETTERS[seq(from = 1, to = 8)]), 
              aes(x = median, y = po.gr), 
              color = "black", fill = "white", shape = 21, size = 1) +   
-  
   scale_colour_gradient(low = "white", 
                         high = "black", 
                         guide = "none") + 
@@ -222,6 +226,9 @@ plt.B <- ggplot() +
         axis.ticks.x = element_blank()) + 
   guides(fill = guide_legend(reverse = TRUE))
 
+
+print(paste(length(unique(po.prob$po.gr)), "directly dated pottery groups"))
+
 # ............................................................
 # 4.3 Joint plot & Save Figure ----
 # ............................................................
@@ -269,10 +276,6 @@ nrow(dplyr::filter(c14,
                    POTTERY != '-' &
                      POTTERY != 'indet' &
                      CLASS == "Ia"))
-
-
-
-
 
 #### SUPPLEMENTARY FIGURE 2 - TIMEFRAME PER REGION PER UNDATED POTTERY POTTERY  ####
 
