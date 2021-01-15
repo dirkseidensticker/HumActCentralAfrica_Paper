@@ -1,6 +1,8 @@
-# Population Collapse in Congo Basin Rainforest from AD 400 Urges Rethinking Bantu Expansion
+# D. Seidensticker, W. Hubau, D. Verschuren, C. Fortes-Lima, P. de Maret, C. M. Schlebusch, K. Bostoen, Population collapse in Congo rainforest from 400 CE urges reassessment of the Bantu Expansion. Sci. Adv. 7, eabd8352 (2021).
 
-All data and scripts required to reproduce the analysis of the following paper are located within this repository.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4394894.svg)](https://doi.org/10.5281/zenodo.4394894)
+
+All data and scripts required to reproduce the analysis of the paper are located within this repository.
 
 For users of the base R console, please define the work directory filepath where you stored the folder "CentralAfricaHumanActivity" by setting `setwd()`. If you use RStudio, you can open the `.Rproj` file instead.
 
