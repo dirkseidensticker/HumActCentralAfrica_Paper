@@ -1,0 +1,239 @@
+---
+title: "response to eLetter from Giresse et al."
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(rcarbon)
+library(tidyr)
+library(sf)
+```
+
+# Selection of dates
+
+Concerning: "The dates listed, often obtained from wood charcoal, were not selected following a strict verification of their sedimentological, environmental or cultural context."
+
+```{r}
+c14 <- data.table::fread("https://raw.githubusercontent.com/dirkseidensticker/HumActCentralAfrica_Paper/main/input/c14.csv",
+                         encoding = "UTF-8")
+unique(c14$FEATURE_DESC)
+```
+
+## summary stats
+
+```{r}
+dict <- matrix(
+  c("Pit", "Pit",
+    "?","-",
+    "Surface", "Misc",
+    "layer", "Misc",
+    "Rockart", "Misc",
+    "Low Mound", "Misc",
+    "Slag heap", "Misc",
+    "Trench", "Misc",
+    "Stratigraphy", "Misc",
+    "Ditch", "Misc",
+    "slag mound", "Misc",
+    "grotte", "Misc",
+    "Surface streambed", "Misc",
+    "Midden", "Misc",
+    "Layer", "Misc",
+    "Furnace", "Metallurgy",
+    "Slag mound", "Misc",
+    "Deposit", "Misc",
+    "Hearth", "Metallurgy",
+    "Pit; Furnace", "Pit",
+    "trench", "Misc",
+    "Burial", "Grave",
+    "Grave", "Grave",
+    "Pedoanthracological trench", "Env",
+    "Pollencore", "Env",
+    "Layer in cave", "Misc",
+    "Ore Quarry", "Misc",
+    "Megalith", "Misc"), 
+  ncol = 2, 
+  byrow=TRUE)
+colnames(dict) <- c("FROM","TO")
+
+c14$FEATURE_DESC <- plyr::mapvalues(c14$FEATURE_DESC, 
+                from = dict[,1], 
+                to = dict[,2])
+
+data1_sum <- reshape2::dcast(c14, CLASS~FEATURE_DESC) %>%
+  #tibble::column_to_rownames("CLASS") %>%
+  dplyr::select(CLASS, Pit, Metallurgy, Grave, Env, Misc, `-`)
+data1_sum
+
+writexl::write_xlsx(data1_sum, path = "output/Data S1 Radiocarbon dates - summary.xlsx")
+```
+
+## permutation testing
+
+```{r}
+library(parallel)
+ncores = (detectCores() - 1)
+
+timeRange = c(4000, 0)
+
+c14 <- c14 %>%
+  dplyr::filter(C14AGE > 50 & C14AGE < 5000 & 
+                C14STD > 10)
+  
+kernel <- ceiling(mean(c14$C14STD)/10)*10
+  
+cal = rcarbon::calibrate(x = c14$C14AGE , 			
+                         errors = c14$C14STD ,
+                         calCurves = "intcal20", 
+                         ncores = ncores, 
+                         normalised = FALSE)
+
+bins <- rcarbon::binPrep(sites = c14$SITE,
+                         ages = c14$C14AGE,
+                         h = 100) # xx years cut off value
+
+# run permTest ----
+perm <- permTest(x = cal,
+                 marks = c14$FEATURE_DESC,
+                 timeRange = timeRange,
+                 bins = bins,
+                 nsim = 100,
+                 runm = kernel)
+
+summary(perm)
+
+plot(perm,
+     focalm = "Pit", 
+     main = "Dates from pit features")
+
+jpeg("output/Figure 2 Permutation Dates from Pits.jpg", 
+     width = 8, height = 6, units="in", res=200)
+plot(perm,
+     focalm = "Pit", 
+     main = "Dates from pit features")
+dev.off()
+```
+
+# Distance between sites
+
+concerning: "the spread would also require a densely inhabited rainforest with great connectivity, which was not the case as population densities were low and the villages probably widely spread out"
+
+> https://www.r-bloggers.com/2020/02/three-ways-to-calculate-distances-in-r/
+
+```{r}
+sites <- data.table::fread("input/sites.csv", 
+                           encoding = "UTF-8") %>%
+  sf::st_as_sf(coords = c("LONG", "LAT"), 
+               remove = F, 
+               crs = 4326, 
+               na.fail = F)
+sites
+
+plot(sites[1])
+```
+
+```{r}
+library(spdep)
+
+index <- unique(sites$POTTERY)
+
+res.lst <- list()
+
+for(i in 1:length(index)){
+  #i = 1
+  sel <- dplyr::filter(sites, POTTERY == index[i])
+  plot(sel[5])
+  if(nrow(sel) >= 5){
+    sel.cords <- sf::st_coordinates(sel)
+    sel.knn <- spdep::knearneigh(sel.cords, 
+                                 k = 4, 
+                                 longlat = TRUE)
+    plot(knn2nb(sel.knn), sel.cords)
+  
+    sel.dist <- spdep::nbdists(
+      spdep::knn2nb(sel.knn), 
+      sel.cords, 
+      longlat =  TRUE
+      )
+  
+    plot(density(unlist(sel.dist)),
+         main= index[i], 
+         sub = "Dstance of K Nearest Neighbours in Kilometers")
+    abline(v = median(unlist(sel.dist)),
+         col = "red")
+    text(21, max(density(unlist(sel.dist))$y), 
+         paste0(round(median(unlist(sel.dist))), " km mean distance"), 
+         pos = 4, 
+         col = "red")
+    
+    res.lst[[i]] <- data.frame(POTTERY = index[i], 
+                             MEDIAN = median(unlist(sel.dist)))
+  }
+}
+knn.res <- do.call(rbind, res.lst)
+```
+
+```{r}
+sum(density(knn.res$MEDIAN)$y)
+
+plot(density(knn.res$MEDIAN),
+     main= "Median Distances of Sites of the same Pottery Group", 
+     sub = "Dstance of K Nearest Neighbours in Kilometers")
+abline(v = median(knn.res$MEDIAN),
+     col = "red")
+text(round(median(knn.res$MEDIAN)),
+     max(density(knn.res$MEDIAN)$y), 
+     paste0(round(median(knn.res$MEDIAN)), " km mean distance"), 
+     pos = 4, 
+     col = "red")
+```
+
+```{r}
+knn.res
+```
+
+```{r}
+pottery <- data.table::fread("input/potterygroups.csv", 
+                             encoding = "UTF-8")
+
+pottery.knn <- merge(
+  x = pottery, 
+  y = knn.res, 
+  by = "POTTERY")
+
+breaks <- seq(-1000, 2000, 100)
+class <- seq(1,length(breaks), 1)
+breaks <- data.frame(breaks, class)
+for(i in 1:nrow(breaks)){breaks[i, "labels"] <- paste0(breaks[i,"class"], ": ", breaks[i,"breaks"], "/", breaks[i+1,"breaks"])}
+
+pottery.res <- data.frame(matrix(ncol = ncol(pottery.knn)+1, nrow = 0))
+x <- c(names(pottery.knn), "CLASS")
+colnames(pottery.res) <- x
+
+for (i in 1:length(pottery.knn$POTTERY)){
+  for (j in 1:(nrow(breaks)-1)) {
+    if(pottery.knn[i,"TO"] > breaks[j,"breaks"] & 
+       pottery.knn[i,"FROM"] < breaks[j+1,"breaks"]){
+      l <- pottery.knn[i,]
+      l$CLASS <- breaks[j,"labels"]
+      pottery.res <- rbind(pottery.res, as.data.frame(l))
+    }
+  }
+}
+pottery.res$AGE <- (as.numeric(sub("/.*", "", sub(".*? ", "", pottery.res$CLASS))) + as.numeric(sub(".*/", "", sub(".*? ", "", pottery.res$CLASS)))) / 2
+pottery.res$AGE.jitter 	<- jitter(pottery.res$AGE, 2)
+```
+
+```{r}
+ggplot(pottery.res, 
+       aes(x = AGE.jitter, 
+           y = MEDIAN, 
+           group = AGE)) +
+  geom_boxplot(outlier.shape = NA) + 
+  #geom_point(alpha = .2, shape = 21) + 
+  scale_x_continuous("cal BCE/CE") +
+  ggtitle("Median Distances of Sites of the same Pottery Group") + 
+  theme_classic()
+ggsave("output/Figure 3 pottery_groups_medianDist.jpg")
+```
+
