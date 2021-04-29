@@ -1,138 +1,106 @@
 ---
-title: "response to eLetter from Giresse et al."
-output: html_notebook
+title: "Extended Response to eLetter from Giresse et al."
+output: 
+  pdf_document:
+    df_print: kable
+date: "`r format(Sys.time(), '%d %B %Y')`"
+author:
+  - Dirk Seidensticker^[Ghent University, dirk.seidensticker@ugent.be]
+  - Wannes Hubau^[Ghent University/Royal Museum for Central Africa, wannes.hubau@ugent.be]
+  - Dirk Verschuren^[Ghent University]
+  - Cesar Fortes-Lima^[Uppsala University]
+  - Pierre de Maret^[Université libre de Bruxelles]
+  - Carina M. Schlebusch^[Uppsala University/University of Johannesburg]
+  - Koen Bostoen^[Ghent University]
 ---
 
-```{r}
+```{r echo=FALSE, warning=FALSE, comment=FALSE, message=FALSE, results='hide', error=FALSE}
 library(ggplot2)
 library(rcarbon)
 library(tidyr)
 library(sf)
 ```
 
-# Selection of dates
+Giresse et al. (1) question our evidence for population collapse in the Congo rainforest from 400 to 600 CE (2). We welcome this opportunity to show that their critique is unfounded, as it appears to be based partly on unsubstantiated claims and partly on not considering multiple lines of evidence that are each presented in a designated Results section of our paper (2), and that besides the cross-regional summed probability distribution (SPD) of archeological 14C-dates are key to the notion of a population collapse between the Early Iron Age (EIA) and Late Iron Age (LIA) in Central Africa.
 
-Concerning: "The dates listed, often obtained from wood charcoal, were not selected following a strict verification of their sedimentological, environmental or cultural context."
+First, Giresse et al. claim that radiocarbon (14C) dates “were not selected following strict verification of their sedimentological, environmental or cultural context”. However, they overlook our transparent system for classification of archeological 14C-dates according to relevance and reliability (table S1 and Methods in (2)). They also overlook our sensitivity analysis on the outcome of the demographic reconstruction when using a less stringent selection of available 14C-dates (fig. S6 in (2)). In fact, we did screen and verify every single 14C-date, and critically assessed all possible biases. To illustrate the power of our classification system, and hence the robustness of our results, we reran our analysis using only dates on “autochthonous charcoal from hearths or pits” (**Fig. 1**; n=416; mainly from class Ia; table S1 in (2)) which according to Giresse et al. “signify the true age of the initial deposition”. This suggests an even stronger population collapse in the 400-600 CE period, both confirming our conclusion and indicating that the addition of other archeological 14C-dates (class Ib-d) does not compromise our main result (Fig. 2A in (2)). We also note that although early use of the (SPDs) of 14C-dates as a proxy for temporal variation in human population density was vulnerable to criticism (reviewed in (3)), the package rcarbon (3–8) which we have used, has addressed these concerns (see Methods in (2)). 
 
-```{r}
-c14 <- data.table::fread("https://raw.githubusercontent.com/dirkseidensticker/HumActCentralAfrica_Paper/main/input/c14.csv",
-                         encoding = "UTF-8")
-unique(c14$FEATURE_DESC)
+```{r ModelTesting, echo=FALSE, warning=FALSE, comment=FALSE, message=FALSE, results='hide', fig.show='hide', error=FALSE}
+# calling script from Fig. 2 to get function rcarbonModelTestValues() function
+source("script/Figure 2 overall spd.R")
+
+c14 <- data.table::fread(
+  "https://raw.githubusercontent.com/dirkseidensticker/HumActCentralAfrica_Paper/main/input/c14.csv",
+  encoding = "UTF-8") %>%
+  dplyr::filter(C14AGE > min.14C.age & 
+                C14STD > 0 & 
+                REGION %in% LETTERS[seq(from = 1, to = 8)] & 
+                CLASS %in% c("Ia","Ib","Ic", "Id") & 
+                FEATURE_DESC %in% c("Pit", "Hearth", "Pit; Furnace"))
+
+kernel <- ceiling(mean(c14.sel.A$C14STD)/10)*10 # time window for running mean (in years)	based mean standard error		
+
+# apply individual nullhypotheses
+c14.unf <- rcarbonModelTestValues(c14, "uniform")
+c14.lin <- rcarbonModelTestValues(c14, "linear")
+c14.exp <- rcarbonModelTestValues(c14, "exponential")
+c14.log <- rcarbonModelTestValues(c14, "logistic")
+
+# combine boom/bust phases
+c14.bb <- rbind(c14.unf[["BoomsBusts"]], 
+                c14.lin[["BoomsBusts"]], 
+                c14.exp[["BoomsBusts"]],
+                c14.log[["BoomsBusts"]])
+# Refine high and low activity periods
+c14.bb_refined <- c14.bb
+c14.bb_refined <- c14.bb_refined [order(c14.bb_refined$FROM),]
 ```
 
-## summary stats
+```{r FIG1, warning=FALSE, echo=FALSE, fig.height = 3, fig.width = 7, fig.align = "center", fig.cap = "Sensitivity analysis to Fig. 2 in (1), showing the temporal variation in the activity of ancient pottery-producing communities in the Congo basin over the past 4000 years, using a subset of most reliable radiocarbon dates presented in (1). Only dates from pit features or metallurgical context (hearth or furnaces) were selected (n = 416). Gray background shading represents the 2-Sigma uncertainty envelope of summed probability in a logistic model of hypothetical population growth drawn from the same 14C datasets. Color shading demarcates periods of more or less intense human activity, defined as time windows during which the observed SPD surpasses (blue) or falls below (red) one (light shading) or multiple (dark shading) growth models."}
 
-```{r}
-dict <- matrix(
-  c("Pit", "Pit",
-    "?","-",
-    "Surface", "Misc",
-    "layer", "Misc",
-    "Rockart", "Misc",
-    "Low Mound", "Misc",
-    "Slag heap", "Misc",
-    "Trench", "Misc",
-    "Stratigraphy", "Misc",
-    "Ditch", "Misc",
-    "slag mound", "Misc",
-    "grotte", "Misc",
-    "Surface streambed", "Misc",
-    "Midden", "Misc",
-    "Layer", "Misc",
-    "Furnace", "Metallurgy",
-    "Slag mound", "Misc",
-    "Deposit", "Misc",
-    "Hearth", "Metallurgy",
-    "Pit; Furnace", "Pit",
-    "trench", "Misc",
-    "Burial", "Grave",
-    "Grave", "Grave",
-    "Pedoanthracological trench", "Env",
-    "Pollencore", "Env",
-    "Layer in cave", "Misc",
-    "Ore Quarry", "Misc",
-    "Megalith", "Misc"), 
-  ncol = 2, 
-  byrow=TRUE)
-colnames(dict) <- c("FROM","TO")
+plt.legend <- ggplot() + 
+  geom_rect(data = c14.bb, 
+            aes(xmin = FROM, xmax = TO, ymin = -Inf, ymax = Inf, fill = rcarbon), alpha = .3) + 
+  scale_fill_manual("",values = c("#00bfc4", "#f8766d"), 
+                    labels = c("more intense human activity", 
+                               "less intense human activity")  ) +
+  theme(legend.position = "top")
+legend <- cowplot::get_legend(plt.legend)
 
-c14$FEATURE_DESC <- plyr::mapvalues(c14$FEATURE_DESC, 
-                from = dict[,1], 
-                to = dict[,2])
+plt.graph <- ggplot() + 
+  geom_ribbon(data = c14.log[["ModelRes"]], 
+              aes(x = calBCAD, ymin = lo, ymax = hi), alpha = .3) + 
+  geom_line(data = c14.exp[["ModelRes"]], # spd from one of the models
+            aes(x = calBCAD, y = PrDens)) + 
+  geom_rect(data = c14.bb_refined,  
+            aes(xmin = FROM, xmax = TO, ymin = 0, ymax = Inf, fill = rcarbon), alpha = .1) + 
+  scale_x_continuous("cal BCE/CE", 
+                     breaks = c(seq(-2000, 1500, 500)), 
+                     expand = c(0,0)) + 
+  scale_y_continuous("Summed probability", 
+                     expand = c(0, 0)) + 
+  theme_classic() + 
+  theme(legend.position = "none")
 
-data1_sum <- reshape2::dcast(c14, CLASS~FEATURE_DESC) %>%
-  #tibble::column_to_rownames("CLASS") %>%
-  dplyr::select(CLASS, Pit, Metallurgy, Grave, Env, Misc, `-`)
-data1_sum
-
-writexl::write_xlsx(data1_sum, path = "output/Data S1 Radiocarbon dates - summary.xlsx")
+cowplot::plot_grid(legend, 
+                   plt.graph, 
+                   ncol = 1,
+                   rel_heights = c(1, 10))
 ```
 
-## permutation testing
+Our second line of evidence in support of the ancient population collapse in Central Africa is the near-simultaneous occurrence of bimodal SPDs in eight distinct regions (Fig. S5 in (2)) together covering the totality of the Congo rainforest (Fig. 1 in (2)). Hence, this pattern is not “observed only in a small number of forest sectors” as claimed by Giresse et al. Our third line of evidence is the striking decline in both the number and distribution area of pottery styles (Fig. 3 in (2)) in the exact time window when the SPD reaches its minimum (Fig. 2 in (2)). Our fourth line of evidence is the significant differences between EIA and LIA ceramics (fig. S1 in (2)), suggesting a severe cultural rupture between the two periods. Moreover, both the EIA and LIA display a clear two-phase structure, with shifts in the number and mean distribution area of pottery styles reflecting a transition between phases of demographic expansion and regionalization. Our sixth line of evidence, finally, is the evolution of effective population sizes in previous generations inferred from genetic data (Fig. 4 in (2)), corroborating not only the population collapse and the spread-over-spread model of Bantu Expansion, but also the significance of the LIA resettlement which Giresse et al. question in particular. As emphasized in our Discussion (2), it is the unmistakable congruence between these radiocarbon, pottery and genetic data which persuaded us of the undeniable reality that a population collapse did occur in the Congo rainforest between 400 and 600 CE, despite remaining uncertainty about each line of evidence when considered in isolation.
 
-```{r}
-library(parallel)
-ncores = (detectCores() - 1)
+Several claims made by Giresse et al. (1) are incorrect or unsubstantiated. For example, we do not suggest “that the Congo rainforest (A) and the adjacent woodland areas, including Bioko Island (B), experienced two early peaks in human activity […] followed by a temporary setback”, but instead that the two subsequent peaks in EIA activity are observed in Cameroon (region A) and Gabon (region B). Giresse et al. appear to confuse panels A and B in Fig. 2 with the region labels A-J in Figs. 1 and S5. Giresse et al. further speculate that "population densities [in the EIA] were low and the villages probably widely spread out" but fail to provide evidence for this speculation. However, connectivity analysis of georeferenced sites with well-described pottery styles (data S4 in (2)) shows that the median distance between a site and its four nearest neighbors with the same pottery style is only 35 km (**Fig. 2**), suggesting a relatively dense network of well-connected villages. Today, the vast network of tributary waterways in the Congo River Basin constitute a major transportation system connecting thousands of villages, and likely it had the same connective potential in the past (9).
 
-timeRange = c(4000, 0)
-
-c14 <- c14 %>%
-  dplyr::filter(C14AGE > 50 & C14AGE < 5000 & 
-                C14STD > 10)
-  
-kernel <- ceiling(mean(c14$C14STD)/10)*10
-  
-cal = rcarbon::calibrate(x = c14$C14AGE , 			
-                         errors = c14$C14STD ,
-                         calCurves = "intcal20", 
-                         ncores = ncores, 
-                         normalised = FALSE)
-
-bins <- rcarbon::binPrep(sites = c14$SITE,
-                         ages = c14$C14AGE,
-                         h = 100) # xx years cut off value
-
-# run permTest ----
-perm <- permTest(x = cal,
-                 marks = c14$FEATURE_DESC,
-                 timeRange = timeRange,
-                 bins = bins,
-                 nsim = 100,
-                 runm = kernel)
-
-summary(perm)
-
-plot(perm,
-     focalm = "Pit", 
-     main = "Dates from pit features")
-
-jpeg("output/Figure 2 Permutation Dates from Pits.jpg", 
-     width = 8, height = 6, units="in", res=200)
-plot(perm,
-     focalm = "Pit", 
-     main = "Dates from pit features")
-dev.off()
-```
-
-# Distance between sites
-
-concerning: "the spread would also require a densely inhabited rainforest with great connectivity, which was not the case as population densities were low and the villages probably widely spread out"
-
-> https://www.r-bloggers.com/2020/02/three-ways-to-calculate-distances-in-r/
-
-```{r}
-sites <- data.table::fread("input/sites.csv", 
-                           encoding = "UTF-8") %>%
+```{r echo=FALSE, warning=FALSE, comment=FALSE, message=FALSE, results='hide', error=FALSE}
+sites <- data.table::fread(
+  "https://raw.githubusercontent.com/dirkseidensticker/HumActCentralAfrica_Paper/main/input/sites.csv", 
+  encoding = "UTF-8") %>%
   sf::st_as_sf(coords = c("LONG", "LAT"), 
                remove = F, 
                crs = 4326, 
                na.fail = F)
-sites
 
-plot(sites[1])
-```
-
-```{r}
 library(spdep)
 
 index <- unique(sites$POTTERY)
@@ -140,61 +108,28 @@ index <- unique(sites$POTTERY)
 res.lst <- list()
 
 for(i in 1:length(index)){
-  #i = 1
   sel <- dplyr::filter(sites, POTTERY == index[i])
-  plot(sel[5])
   if(nrow(sel) >= 5){
     sel.cords <- sf::st_coordinates(sel)
     sel.knn <- spdep::knearneigh(sel.cords, 
                                  k = 4, 
                                  longlat = TRUE)
-    plot(knn2nb(sel.knn), sel.cords)
-  
+
     sel.dist <- spdep::nbdists(
       spdep::knn2nb(sel.knn), 
       sel.cords, 
       longlat =  TRUE
       )
-  
-    plot(density(unlist(sel.dist)),
-         main= index[i], 
-         sub = "Dstance of K Nearest Neighbours in Kilometers")
-    abline(v = median(unlist(sel.dist)),
-         col = "red")
-    text(21, max(density(unlist(sel.dist))$y), 
-         paste0(round(median(unlist(sel.dist))), " km mean distance"), 
-         pos = 4, 
-         col = "red")
-    
+
     res.lst[[i]] <- data.frame(POTTERY = index[i], 
                              MEDIAN = median(unlist(sel.dist)))
   }
 }
 knn.res <- do.call(rbind, res.lst)
-```
 
-```{r}
-sum(density(knn.res$MEDIAN)$y)
-
-plot(density(knn.res$MEDIAN),
-     main= "Median Distances of Sites of the same Pottery Group", 
-     sub = "Dstance of K Nearest Neighbours in Kilometers")
-abline(v = median(knn.res$MEDIAN),
-     col = "red")
-text(round(median(knn.res$MEDIAN)),
-     max(density(knn.res$MEDIAN)$y), 
-     paste0(round(median(knn.res$MEDIAN)), " km mean distance"), 
-     pos = 4, 
-     col = "red")
-```
-
-```{r}
-knn.res
-```
-
-```{r}
-pottery <- data.table::fread("input/potterygroups.csv", 
-                             encoding = "UTF-8")
+pottery <- data.table::fread(
+  "https://raw.githubusercontent.com/dirkseidensticker/HumActCentralAfrica_Paper/main/input/potterygroups.csv", 
+  encoding = "UTF-8")
 
 pottery.knn <- merge(
   x = pottery, 
@@ -224,16 +159,46 @@ pottery.res$AGE <- (as.numeric(sub("/.*", "", sub(".*? ", "", pottery.res$CLASS)
 pottery.res$AGE.jitter 	<- jitter(pottery.res$AGE, 2)
 ```
 
-```{r}
-ggplot(pottery.res, 
+```{r FIG2, warning=FALSE, echo=FALSE, fig.height = 3, fig.width = 7, fig.align = "center", fig.cap = "Median distances of sites pertaining to the same pottery group. Distances were calculated by constructing a network for each pottery group with more than five sites. For each group, sites were connected with their four nearest neighbours using the knearneigh() function provided by the spdep R-package. The summary of median distances of all groups (a) shows that sites are often about 20 to 45 km apart with a median distance of 35 km. Longer distances are rarely to be observed. The temporal distribution varies through time but follows the general trends presented in Fig. 3 in (1)."}
+# fig.height = 4, fig.width = 7, fig.align = "center", 
+p1 <- ggplot(knn.res, 
+       aes(x = MEDIAN)) + 
+  geom_density() + 
+  geom_boxplot(aes(y = 0), width = .001, outlier.shape = NA) + 
+  scale_x_continuous("Distance of K Nearest Neighbours in km", 
+                     expand = c(0,0), 
+                     breaks = seq(0, max(knn.res$MEDIAN), 20)) + 
+  scale_y_continuous("Density") + 
+  theme_classic()
+p2 <- ggplot(pottery.res, 
        aes(x = AGE.jitter, 
            y = MEDIAN, 
            group = AGE)) +
   geom_boxplot(outlier.shape = NA) + 
-  #geom_point(alpha = .2, shape = 21) + 
-  scale_x_continuous("cal BCE/CE") +
-  ggtitle("Median Distances of Sites of the same Pottery Group") + 
+  scale_x_continuous("cal BCE/CE", 
+                     limits = c(-1000, 1800), 
+                     breaks = seq(-1000, 1800, 500)) +
+  scale_y_continuous("Median distance", expand = c(0, 0)) + 
   theme_classic()
-ggsave("output/Figure 3 pottery_groups_medianDist.jpg")
+cowplot::plot_grid(p1, p2, labels = "auto")
 ```
 
+Notwithstanding its title, the bulk of the commentary by Giresse et al. (1) does not focus on the occurrence of a population collapse an sich but on its possible drivers and the two waves of immigration into the Congo rainforest. Giresse et al. argue that “attribution [of the population collapse] to an epidemic needs to be substantiated by independent evidence”. On this point we agree, as stated explicitly in our paper ((2), p. 7). Highlighting their own work, Giresse et al. further suggest that “the climatic history of the Central African rainforest remains far from being clarified”, as “[only] the coastal regions of Gabon and Congo are so far […] properly documented (10–12)”. Given that this result represents at least 30 years of targeted effort, we suggest that it is perhaps due to the extreme scarcity or even absence of high-quality paleoenvironmental archives in the Congo basin permitting discrimination between hydroclimate history itself and the site-specific vegetation response to that moisture-balance variability. Therefore, we opted to rely on current understanding of large-scale tropical climate dynamics at multidecadal to multi-century time scales, and how the resulting climate variability is expressed in high-quality hydroclimate archives from regions of moist tropical Africa immediately adjacent to the Congo basin (reviewed in (13)).
+
+In summary, our study is the first to consider all relevant 14C-dates currently available from the Congo rainforest and adjacent areas, and subject them to transparent quality screening. Also it is the first to consider all relevant pottery finds from the Congo rainforest, and to analyze their abundance, distribution and style in a comprehensive manner. It is mainly the striking congruence between these two comprehensive datasets which provides convincing proof that the EIA and LIA in the study area were separated by a population collapse dated to 400-600 CE. At the same time we do not pretend that our study has fully resolved the cause of this collapse.
+
+## References
+
+1. 	P. Giresse, J. Maley, A. Chepstow-Lusty, Saving 1,000 years of African history: there is no evidence of a population collapse in Congo rainforest from 400 to 600 CE – Paleoenvironment, paleoclimate. Sci. Adv. (2021).
+1. 	D. Seidensticker, W. Hubau, D. Verschuren, C. Fortes-Lima, P. de Maret, C. M. Schlebusch, K. Bostoen, Population collapse in Congo rainforest from 400 CE urges reassessment of the Bantu Expansion. Sci. Adv. 7, eabd8352 (2021).
+1. 	E. R. Crema, A. Bevan, S. Shennan, Spatio-temporal approaches to archaeological radiocarbon dates. J. Archaeol. Sci. 87, 1–9 (2017).
+1. 	S. Shennan, S. S. Downey, A. Timpson, K. Edinborough, S. Colledge, T. Kerig, K. Manning, M. G. Thomas, Regional population collapse followed initial agriculture booms in mid-Holocene Europe. Nat. Commun. 4 (2013).
+1. 	A. Timpson, S. Colledge, E. Crema, K. Edinborough, T. Kerig, K. Manning, M. G. Thomas, S. Shennan, Reconstructing regional population fluctuations in the European Neolithic using radiocarbon dates: a new case-study using an improved method. J. Archaeol. Sci. 52, 549–557 (2014).
+1. 	K. Manning, A. Timpson, The demographic response to holocene climate change in the Sahara. Quat. Sci. Rev. 101, 28–35 (2014).
+1. 	A. Bevan, E. Crema, rcarbon: Calibration and Analysis of Radiocarbon Dates. CRAN (2019), (available at https://cran.r-project.org/web/packages/rcarbon/index.html).
+1. 	E. R. Crema, J. Habu, K. Kobayashi, M. Madella, Summed Probability Distribution of 14C Dates Suggests Regional Divergences in the Population Dynamics of the Jomon Period in Eastern Japan. PLoS One. 11, 1–18 (2016).
+1. 	M. K. H. Eggert, Über die Flüsse in die Wälder: Zur Besiedlungsgeschichte des äquatorialen Regenwaldes, in Der zentralafrikanische Regenwald, M. Bollig, D. Bünnagel, Eds. (Lit Verlag, Münster and Hamburg, 1993), Afrikanische Studien, pp. 53–63.
+1. 	H. Elenga, D. Schwartz, A. Vincens, J. Bertaux, C. De Namur, L. Martin, D. Wirrmann, Diagramme pollinique holocène du lac Kitina (Congo): mise en évidence de changements paléobotaniques et paléoclimatiques dans le massif forestier du Mayombe. Comptes Rendus l’Académie des Sci. IIA-Earth Planet. Sci. 323, 403–410 (1996).
+1. 	A. Ngomanda, K. Neumann, A. Schweizer, J. Maley, Seasonality change and the third millennium BP rainforest crisis in southern Cameroon (Central Africa). Quat. Res. 71, 307–318 (2009).
+1. 	V. Nfoumou Obame, M. Mvoubou, D. Sebag, R. Oslisly, L. Bremond, M. Mounguengui, P. Giresse, Le rôle de l’évolution des paysages holocènes dans le comblement des bas-fonds du Parc national de la Lopé, moyenne vallée de l’Ogooué au Gabon (2017).
+1. 	D. J. Nash, G. De Cort, B. M. Chase, D. Verschuren, S. E. Nicholson, T. M. Shanahan, A. Asrat, A.-M. Lézine, S. W. Grab, African hydroclimatic variability during the last 2000 years. Quat. Sci. Rev. 154, 1–22 (2016).
