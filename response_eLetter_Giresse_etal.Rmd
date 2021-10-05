@@ -1,17 +1,19 @@
 ---
 title: "Extended Response to eLetter from Giresse et al."
-output: 
+author:
+- Dirk Seidensticker^[Ghent University, dirk.seidensticker@ugent.be]
+- Wannes Hubau^[Ghent University/Royal Museum for Central Africa, wannes.hubau@ugent.be]
+- Dirk Verschuren^[Ghent University]
+- Cesar Fortes-Lima^[Uppsala University]
+- Pierre de Maret^[Université libre de Bruxelles]
+- Carina M. Schlebusch^[Uppsala University/University of Johannesburg]
+- Koen Bostoen^[Ghent University]
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    df_print: paged
   pdf_document:
     df_print: kable
-date: "`r format(Sys.time(), '%d %B %Y')`"
-author:
-  - Dirk Seidensticker^[Ghent University, dirk.seidensticker@ugent.be]
-  - Wannes Hubau^[Ghent University/Royal Museum for Central Africa, wannes.hubau@ugent.be]
-  - Dirk Verschuren^[Ghent University]
-  - Cesar Fortes-Lima^[Uppsala University]
-  - Pierre de Maret^[Université libre de Bruxelles]
-  - Carina M. Schlebusch^[Uppsala University/University of Johannesburg]
-  - Koen Bostoen^[Ghent University]
 ---
 
 ```{r echo=FALSE, warning=FALSE, comment=FALSE, message=FALSE, results='hide', error=FALSE}
